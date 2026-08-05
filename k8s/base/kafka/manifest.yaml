@@ -42,6 +42,10 @@ spec:
               value: "1"
             - name: KAFKA_HEAP_OPTS
               value: "-Xmx192m -Xms192m"
+            # None of our topics are compacted; the log cleaner's default 128MB
+            # dedupe buffer alone would blow the heap budget above for no benefit.
+            - name: KAFKA_LOG_CLEANER_ENABLE
+              value: "false"
           volumeMounts:
             - name: kafka-data
               mountPath: /var/lib/kafka/data
