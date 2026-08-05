@@ -1,0 +1,32 @@
+# Maven
+target/
+*.class
+
+# Java
+*.jar
+*.war
+!.mvn/wrapper/maven-wrapper.jar
+hs_err_pid*
+
+# IDE
+.idea/
+*.iml
+.vscode/*
+!.vscode/extensions.json
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Logs
+*.log
+
+# Node (frontend has its own .gitignore too)
+frontend/node_modules/
+frontend/dist/
+frontend/dist-ssr/

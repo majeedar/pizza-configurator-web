@@ -1,0 +1,1 @@
+ALTER TABLE orders ADD COLUMN phone_number VARCHAR(32) NOT NULL DEFAULT '';

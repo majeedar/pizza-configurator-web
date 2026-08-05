@@ -1,0 +1,127 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: gateway
+  cloud:
+    gateway:
+      routes:
+        # RewritePath uses `(?<segment>/?.*)` (not `/(?<segment>.*)`) and a replacement
+        # with no literal leading slash, so it handles both the bare collection path
+        # (e.g. POST /v1/customer/orders, no trailing segment) and sub-paths (e.g.
+        # GET /v1/customer/orders/{id}) correctly. The naive version 404s on the bare
+        # path because its regex requires a trailing "/" that isn't there.
+        - id: catalog-service
+          uri: ${clients.catalog-service.base-url:http://localhost:8081}
+          predicates:
+            - Path=/v1/customer/catalog/**
+          filters:
+            - RewritePath=/v1/customer/catalog(?<segment>/?.*), /v1/catalog$\{segment}
+        - id: pricing-service
+          uri: ${clients.pricing-service.base-url:http://localhost:8083}
+          predicates:
+            - Path=/v1/customer/pricing/**
+          filters:
+            - RewritePath=/v1/customer/pricing(?<segment>/?.*), /v1/pricing$\{segment}
+        - id: rule-service
+          uri: ${clients.rule-service.base-url:http://localhost:8082}
+          predicates:
+            - Path=/v1/customer/rules/**
+          filters:
+            - RewritePath=/v1/customer/rules(?<segment>/?.*), /v1/rules$\{segment}
+        # Must precede the general order-service route below — "mine" derives the
+        # customer purely from the X-Customer-Id header the CustomerIdentityGlobalFilter
+        # sets from the caller's own JWT, never from a URL, so nobody can list another
+        # customer's orders by guessing an id.
+        - id: order-service-my-orders
+          uri: ${clients.order-service.base-url:http://localhost:8085}
+          predicates:
+            - Path=/v1/customer/orders/mine
+          filters:
+            - RewritePath=/v1/customer/orders/mine, /v1/orders/customers/mine/orders
+        - id: order-service
+          uri: ${clients.order-service.base-url:http://localhost:8085}
+          predicates:
+            - Path=/v1/customer/orders/**
+          filters:
+            - RewritePath=/v1/customer/orders(?<segment>/?.*), /v1/orders$\{segment}
+        - id: ai-parser-service
+          uri: ${clients.ai-parser-service.base-url:http://localhost:8084}
+          predicates:
+            - Path=/v1/customer/ai-parser/**
+          filters:
+            - RewritePath=/v1/customer/ai-parser(?<segment>/?.*), /v1/ai-parser$\{segment}
+        # Plain passthrough — registration needs no JWT/orchestration, just a new
+        # customer row in order-service. Covered by the existing /v1/auth/** permitAll
+        # rule in SecurityConfig, so no security change needed for this route.
+        - id: order-service-customer-register
+          uri: ${clients.order-service.base-url:http://localhost:8085}
+          predicates:
+            - Path=/v1/auth/register
+          filters:
+            - RewritePath=/v1/auth/register, /v1/orders/customers/register
+        # Self-service only — derives the caller's own account purely from the
+        # X-Staff-Id header the IdentityHeaderGlobalFilter sets from their own JWT,
+        # never a path id, so one staff member can't change another's password.
+        # Requires authentication (see SecurityConfig), unlike the rest of /v1/auth/**.
+        - id: order-service-staff-password
+          uri: ${clients.order-service.base-url:http://localhost:8085}
+          predicates:
+            - Path=/v1/auth/staff/password
+          filters:
+            - RewritePath=/v1/auth/staff/password, /v1/orders/staff-accounts/me/password
+        # Staff-facing (KDS) and admin routes are not "customer" traffic, so they keep
+        # their services' own path prefixes verbatim — no rewriting needed. JWT/RBAC
+        # enforcement for these lives in SecurityConfig (CLAUDE.md §2/§4).
+        #
+        # This route must be listed BEFORE the general kitchen-service route below —
+        # Spring Cloud Gateway takes the first matching route, and /v1/kitchen/** would
+        # otherwise swallow /v1/kitchen/pending-reviews/** too. Physically served by
+        # order-service (owns the pending-reviews data), not kitchen-service.
+        - id: order-service-staff-reviews
+          uri: ${clients.order-service.base-url:http://localhost:8085}
+          predicates:
+            - Path=/v1/kitchen/pending-reviews/**
+          filters:
+            - RewritePath=/v1/kitchen/pending-reviews(?<segment>/?.*), /v1/orders/staff/pending-reviews$\{segment}
+        - id: kitchen-service
+          uri: ${clients.kitchen-service.base-url:http://localhost:8086}
+          predicates:
+            - Path=/v1/kitchen/**
+        # Pizza/ingredient/extras/image admin CRUD lives directly in catalog-service
+        # (it owns that data), not proxied through admin-service like prices/rules —
+        # a whole pizza edit is a nested object graph, not a single scalar value, so
+        # admin-service's old/new-value audit-log pattern doesn't fit it well. Must
+        # precede the generic /v1/admin/** route below.
+        - id: catalog-service-admin
+          uri: ${clients.catalog-service.base-url:http://localhost:8081}
+          predicates:
+            - Path=/v1/admin/catalog/**
+          filters:
+            - RewritePath=/v1/admin/catalog(?<segment>/?.*), /v1/catalog/admin$\{segment}
+        - id: admin-service
+          uri: ${clients.admin-service.base-url:http://localhost:8087}
+          predicates:
+            - Path=/v1/admin/**
+
+# Development-only placeholder — there's no real IdP in this scaffold yet, so JWTs are
+# verified with a shared HMAC secret. Rotate this before anything resembling production.
+jwt:
+  signing-secret: ${JWT_SIGNING_SECRET:this-is-a-development-only-placeholder-signing-secret-please-rotate}
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}

@@ -1,0 +1,1 @@
+ALTER TABLE pizzas ADD COLUMN image_url VARCHAR(256);

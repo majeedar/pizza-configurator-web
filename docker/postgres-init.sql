@@ -1,0 +1,5 @@
+CREATE DATABASE catalog_db;
+CREATE DATABASE price_db;
+CREATE DATABASE rules_db;
+CREATE DATABASE order_db;
+CREATE DATABASE admin_db;

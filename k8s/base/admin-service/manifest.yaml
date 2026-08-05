@@ -1,0 +1,79 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: admin-service-config
+data:
+  SPRING_PROFILES_ACTIVE: "kubernetes"
+  JAVA_TOOL_OPTIONS: "-Xmx256m"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/admin_db"
+  CLIENTS_PRICING_SERVICE_BASE_URL: "http://pricing-service:8083"
+  CLIENTS_RULE_SERVICE_BASE_URL: "http://rule-service:8082"
+  CLIENTS_ORDER_SERVICE_BASE_URL: "http://order-service:8085"
+---
+# Placeholder only — replace with real credentials via `kubectl create secret` or a
+# secrets manager before applying to any real cluster; never commit real values here.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: admin-service-db-credentials
+type: Opaque
+stringData:
+  DB_USERNAME: postgres
+  DB_PASSWORD: changeme
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: admin-service
+  labels:
+    app: admin-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: admin-service
+  template:
+    metadata:
+      labels:
+        app: admin-service
+    spec:
+      containers:
+        - name: admin-service
+          image: pizza/admin-service:latest
+          ports:
+            - containerPort: 8087
+          envFrom:
+            - configMapRef:
+                name: admin-service-config
+            - secretRef:
+                name: admin-service-db-credentials
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8087
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8087
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: admin-service
+spec:
+  selector:
+    app: admin-service
+  ports:
+    - port: 8087
+      targetPort: 8087

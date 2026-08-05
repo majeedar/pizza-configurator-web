@@ -1,0 +1,19 @@
+# The gateway Service is the only externally exposed entry point (CLAUDE.md §12) — every
+# other service is ClusterIP-only and reachable exclusively from inside the cluster.
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: pizza-configurator-ingress
+spec:
+  # ingressClassName is deliberately unset here — each overlay (local/hetzner/production)
+  # patches in the controller it actually has (e.g. traefik on the Hetzner overlay).
+  rules:
+    - http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  number: 8080

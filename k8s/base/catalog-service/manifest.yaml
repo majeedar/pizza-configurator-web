@@ -1,0 +1,98 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: catalog-service-config
+data:
+  SPRING_PROFILES_ACTIVE: "kubernetes"
+  JAVA_TOOL_OPTIONS: "-Xmx256m"
+  SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/catalog_db"
+  CATALOG_IMAGES_DIR: "/data/pizza-images"
+---
+# ReadWriteOnce is fine at replicas: 1 (below); a real multi-replica deployment would
+# need shared object storage (S3/MinIO) instead of a node-local PVC, same class of
+# limitation kitchen-service's Redis-backed board was built to avoid for its own state.
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: catalog-service-images
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: 1Gi
+---
+# Placeholder only — replace with real credentials via `kubectl create secret` or a
+# secrets manager before applying to any real cluster; never commit real values here.
+apiVersion: v1
+kind: Secret
+metadata:
+  name: catalog-service-db-credentials
+type: Opaque
+stringData:
+  DB_USERNAME: postgres
+  DB_PASSWORD: changeme
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: catalog-service
+  labels:
+    app: catalog-service
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: catalog-service
+  template:
+    metadata:
+      labels:
+        app: catalog-service
+    spec:
+      containers:
+        - name: catalog-service
+          image: pizza/catalog-service:latest
+          ports:
+            - containerPort: 8081
+          envFrom:
+            - configMapRef:
+                name: catalog-service-config
+            - secretRef:
+                name: catalog-service-db-credentials
+          volumeMounts:
+            - name: pizza-images
+              mountPath: /data/pizza-images
+          livenessProbe:
+            httpGet:
+              path: /actuator/health/liveness
+              port: 8081
+            initialDelaySeconds: 30
+            periodSeconds: 10
+          readinessProbe:
+            httpGet:
+              path: /actuator/health/readiness
+              port: 8081
+            initialDelaySeconds: 15
+            periodSeconds: 10
+          resources:
+            requests:
+              cpu: 100m
+              memory: 256Mi
+            limits:
+              cpu: 500m
+              memory: 384Mi
+      volumes:
+        - name: pizza-images
+          persistentVolumeClaim:
+            claimName: catalog-service-images
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: catalog-service
+spec:
+  selector:
+    app: catalog-service
+  ports:
+    - port: 8081
+      targetPort: 8081

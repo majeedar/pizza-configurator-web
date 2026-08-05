@@ -1,0 +1,52 @@
+server:
+  port: 8082
+
+spring:
+  application:
+    name: rule-service
+  datasource:
+    url: jdbc:postgresql://localhost:5432/rules_db
+    username: ${DB_USERNAME:postgres}
+    password: ${DB_PASSWORD:postgres}
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    open-in-view: false
+  flyway:
+    enabled: true
+  kafka:
+    bootstrap-servers: ${KAFKA_BOOTSTRAP_SERVERS:localhost:9092}
+    consumer:
+      group-id: rule-service
+      value-deserializer: org.springframework.kafka.support.serializer.JsonDeserializer
+      properties:
+        spring.json.trusted.packages: com.pizzaconfig.commoncontracts.event
+        spring.json.value.default.type: com.pizzaconfig.commoncontracts.event.RuleConfigUpdatedEvent
+        spring.json.use.type.headers: false
+
+rule:
+  cheese-cap: 2
+  gluten-free-sizes: [S, M]
+  oven-thermal-limit: 10
+
+clients:
+  catalog-service:
+    base-url: http://localhost:8081
+  pricing-service:
+    base-url: http://localhost:8083
+
+management:
+  endpoints:
+    web:
+      exposure:
+        include: health,prometheus
+  endpoint:
+    health:
+      probes:
+        enabled: true
+  tracing:
+    sampling:
+      probability: 1.0
+  otlp:
+    tracing:
+      endpoint: ${OTEL_EXPORTER_OTLP_ENDPOINT:http://localhost:4318/v1/traces}

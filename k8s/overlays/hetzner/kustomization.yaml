@@ -1,0 +1,39 @@
+apiVersion: kustomize.config.k8s.io/v1beta1
+kind: Kustomization
+namespace: pizza-configurator-hetzner
+resources:
+  - ../../base
+
+# Sized for CLAUDE.md §13: 2x CX22 (2 vCPU / 4GB each), Node A also running the k3s
+# control plane + Traefik ingress, Node B worker-only. With 9 Spring Boot services +
+# Postgres + Kafka + Redis sharing 8GB total, requests stay conservative and replicas
+# stay at 1 per service — there's no headroom for redundancy at this size, and Kafka/
+# Postgres/Redis themselves have no K8s manifests here (see conversation notes; they'd
+# need PVCs backed by storageClassName: hcloud-volumes, and a nodeSelector pinning them
+# to Node B per §13.1 — that's a follow-up, not part of this scaffold).
+patches:
+  - target:
+      kind: Deployment
+    patch: |-
+      - op: replace
+        path: /spec/replicas
+        value: 1
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/cpu
+        value: 100m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 256Mi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/cpu
+        value: 400m
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 384Mi
+  - target:
+      kind: Ingress
+      name: pizza-configurator-ingress
+    patch: |-
+      - op: add
+        path: /spec/ingressClassName
+        value: traefik
