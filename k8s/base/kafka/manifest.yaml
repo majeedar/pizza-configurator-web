@@ -50,8 +50,11 @@ spec:
             - name: kafka-data
               mountPath: /var/lib/kafka/data
           readinessProbe:
-            exec:
-              command: ["/opt/kafka/bin/kafka-broker-api-versions.sh", "--bootstrap-server", "localhost:9092"]
+            # kafka-broker-api-versions.sh launches a whole extra JVM per check, which
+            # under this node's CPU contention routinely exceeds even a 10s timeout.
+            # A TCP check is cheap and doesn't add to the contention it's measuring.
+            tcpSocket:
+              port: 9092
             initialDelaySeconds: 20
             periodSeconds: 15
           resources:
@@ -75,6 +78,15 @@ kind: Service
 metadata:
   name: kafka
 spec:
+  # Headless: a single-node StatefulSet's broker connects to its own controller
+  # listener via this Service name, which hits Kubernetes' pod-can't-reach-its-
+  # own-ClusterIP hairpin-NAT issue on a normal (non-headless) Service. Headless
+  # resolves straight to the pod IP instead, sidestepping it entirely.
+  clusterIP: None
+  # Headless services only publish DNS records for ready pods by default, but this
+  # broker needs to resolve its own hostname to become ready in the first place —
+  # without this it's a chicken-and-egg UnknownHostException loop.
+  publishNotReadyAddresses: true
   selector:
     app: kafka
   ports:

@@ -23,12 +23,33 @@ patches:
       - op: replace
         path: /spec/template/spec/containers/0/resources/requests/memory
         value: 192Mi
+      # CPU limit is generous on purpose: unlike memory, CPU is compressible and
+      # doesn't need to fit within real available headroom the same way. A tight
+      # limit here throttled JVM cold starts badly enough (12+ services starting
+      # at once on 4 real cores) that liveness probes killed pods mid-startup.
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/cpu
-        value: 250m
+        value: 1000m
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/memory
         value: 288Mi
+      # Same cold-start contention: give liveness/readiness a lot more patience
+      # than a lightly-loaded dedicated box would need.
+      - op: replace
+        path: /spec/template/spec/containers/0/livenessProbe/initialDelaySeconds
+        value: 90
+      - op: replace
+        path: /spec/template/spec/containers/0/livenessProbe/periodSeconds
+        value: 15
+      - op: add
+        path: /spec/template/spec/containers/0/livenessProbe/failureThreshold
+        value: 6
+      - op: replace
+        path: /spec/template/spec/containers/0/readinessProbe/initialDelaySeconds
+        value: 30
+      - op: add
+        path: /spec/template/spec/containers/0/readinessProbe/failureThreshold
+        value: 10
   # order-service is the heaviest of the 9 (JPA/Hibernate, Flyway, bcrypt) — a bit
   # more headroom than the blanket patch above gives the rest.
   - target:
