@@ -39,7 +39,7 @@ spec:
     spec:
       containers:
         - name: rule-service
-          image: pizza/rule-service:latest
+          image: ghcr.io/majeedar/rule-service:latest
           ports:
             - containerPort: 8082
           envFrom:

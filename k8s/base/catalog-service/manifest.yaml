@@ -51,7 +51,7 @@ spec:
     spec:
       containers:
         - name: catalog-service
-          image: pizza/catalog-service:latest
+          image: ghcr.io/majeedar/catalog-service:latest
           ports:
             - containerPort: 8081
           envFrom:

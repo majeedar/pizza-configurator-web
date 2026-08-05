@@ -27,7 +27,7 @@ spec:
     spec:
       containers:
         - name: kitchen-service
-          image: pizza/kitchen-service:latest
+          image: ghcr.io/majeedar/kitchen-service:latest
           ports:
             - containerPort: 8086
           envFrom:

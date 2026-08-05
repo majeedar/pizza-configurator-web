@@ -36,7 +36,7 @@ spec:
     spec:
       containers:
         - name: ai-parser-service
-          image: pizza/ai-parser-service:latest
+          image: ghcr.io/majeedar/ai-parser-service:latest
           ports:
             - containerPort: 8084
           envFrom:

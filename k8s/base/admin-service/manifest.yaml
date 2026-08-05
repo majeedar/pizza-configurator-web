@@ -39,7 +39,7 @@ spec:
     spec:
       containers:
         - name: admin-service
-          image: pizza/admin-service:latest
+          image: ghcr.io/majeedar/admin-service:latest
           ports:
             - containerPort: 8087
           envFrom:
