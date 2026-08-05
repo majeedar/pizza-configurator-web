@@ -11,6 +11,7 @@
   </parent>
 
   <artifactId>ai-parser-service</artifactId>
+  <name>ai-parser-service</name>
   <packaging>jar</packaging>
 
   <dependencies>
