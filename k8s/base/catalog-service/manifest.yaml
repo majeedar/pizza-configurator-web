@@ -51,7 +51,7 @@ spec:
     spec:
       containers:
         - name: catalog-service
-          image: ghcr.io/majeedar/catalog-service:latest
+          image: ghcr.io/majeedar/catalog-service:feb5cdbf354573f92b3da1b324a75a390cde34f7
           ports:
             - containerPort: 8081
           envFrom:
