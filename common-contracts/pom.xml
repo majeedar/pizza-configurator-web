@@ -12,6 +12,7 @@
 
   <artifactId>common-contracts</artifactId>
   <name>common-contracts</name>
+  <!-- Shared Kafka event DTOs used across services -->
   <packaging>jar</packaging>
 
   <dependencies>

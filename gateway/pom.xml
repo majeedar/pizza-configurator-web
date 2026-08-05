@@ -12,6 +12,7 @@
 
   <artifactId>gateway</artifactId>
   <name>gateway</name>
+  <!-- API gateway, JWT auth, routing -->
   <packaging>jar</packaging>
 
   <properties>

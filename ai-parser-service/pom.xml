@@ -12,6 +12,7 @@
 
   <artifactId>ai-parser-service</artifactId>
   <name>ai-parser-service</name>
+  <!-- Free-text comment parsing -->
   <packaging>jar</packaging>
 
   <dependencies>
