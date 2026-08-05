@@ -11,6 +11,10 @@ on:
       - 'notification-service/**'
       - 'common-contracts/**'
 
+permissions:
+  contents: read
+  packages: write
+
 env:
   REGISTRY: ghcr.io/${{ github.repository_owner }}
 
