@@ -4,13 +4,12 @@ namespace: pizza-configurator-hetzner
 resources:
   - ../../base
 
-# Sized for CLAUDE.md §13: 2x CX22 (2 vCPU / 4GB each), Node A also running the k3s
-# control plane + Traefik ingress, Node B worker-only. With 9 Spring Boot services +
-# Postgres + Kafka + Redis sharing 8GB total, requests stay conservative and replicas
-# stay at 1 per service — there's no headroom for redundancy at this size, and Kafka/
-# Postgres/Redis themselves have no K8s manifests here (see conversation notes; they'd
-# need PVCs backed by storageClassName: hcloud-volumes, and a nodeSelector pinning them
-# to Node B per §13.1 — that's a follow-up, not part of this scaffold).
+# Deployed to a single shared box (not the 2-node CX22 pair CLAUDE.md §13 assumed),
+# already running several other live projects — real free memory is much tighter
+# than the node's reported allocatable. Requests are trimmed hard below what a
+# dedicated box would use; JVM heaps are capped to match via each service's
+# JAVA_TOOL_OPTIONS. Postgres/Kafka/Redis run as StatefulSets in k8s/base with
+# their own conservative sizing, not the blanket Deployment patch below.
 patches:
   - target:
       kind: Deployment
@@ -20,16 +19,28 @@ patches:
         value: 1
       - op: replace
         path: /spec/template/spec/containers/0/resources/requests/cpu
-        value: 100m
+        value: 50m
       - op: replace
         path: /spec/template/spec/containers/0/resources/requests/memory
-        value: 256Mi
+        value: 192Mi
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/cpu
-        value: 400m
+        value: 250m
       - op: replace
         path: /spec/template/spec/containers/0/resources/limits/memory
-        value: 384Mi
+        value: 288Mi
+  # order-service is the heaviest of the 9 (JPA/Hibernate, Flyway, bcrypt) — a bit
+  # more headroom than the blanket patch above gives the rest.
+  - target:
+      kind: Deployment
+      name: order-service
+    patch: |-
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/requests/memory
+        value: 224Mi
+      - op: replace
+        path: /spec/template/spec/containers/0/resources/limits/memory
+        value: 320Mi
   - target:
       kind: Ingress
       name: pizza-configurator-ingress

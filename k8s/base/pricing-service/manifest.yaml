@@ -4,7 +4,7 @@ metadata:
   name: pricing-service-config
 data:
   SPRING_PROFILES_ACTIVE: "kubernetes"
-  JAVA_TOOL_OPTIONS: "-Xmx256m"
+  JAVA_TOOL_OPTIONS: "-Xmx128m -XX:MaxMetaspaceSize=128m"
   SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/price_db"
 ---
 # Placeholder only — replace with real credentials via `kubectl create secret` or a

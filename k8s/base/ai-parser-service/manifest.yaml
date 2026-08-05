@@ -4,7 +4,9 @@ metadata:
   name: ai-parser-service-config
 data:
   SPRING_PROFILES_ACTIVE: "kubernetes"
-  JAVA_TOOL_OPTIONS: "-Xmx256m"
+  JAVA_TOOL_OPTIONS: "-Xmx128m -XX:MaxMetaspaceSize=128m"
+  OPENAI_BASE_URL: "https://api.deepseek.com"
+  OPENAI_MODEL: "deepseek-chat"
 ---
 # Placeholder only — replace with a real OpenAI API key via `kubectl create secret` or a
 # secrets manager before applying to any real cluster; never commit a real key here.

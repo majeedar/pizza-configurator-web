@@ -4,7 +4,7 @@ metadata:
   name: catalog-service-config
 data:
   SPRING_PROFILES_ACTIVE: "kubernetes"
-  JAVA_TOOL_OPTIONS: "-Xmx256m"
+  JAVA_TOOL_OPTIONS: "-Xmx128m -XX:MaxMetaspaceSize=128m"
   SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/catalog_db"
   CATALOG_IMAGES_DIR: "/data/pizza-images"
 ---

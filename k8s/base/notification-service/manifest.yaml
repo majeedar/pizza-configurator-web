@@ -4,7 +4,7 @@ metadata:
   name: notification-service-config
 data:
   SPRING_PROFILES_ACTIVE: "kubernetes"
-  JAVA_TOOL_OPTIONS: "-Xmx256m"
+  JAVA_TOOL_OPTIONS: "-Xmx128m -XX:MaxMetaspaceSize=128m"
   KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
 ---
 apiVersion: apps/v1

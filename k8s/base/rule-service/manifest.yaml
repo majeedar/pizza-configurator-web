@@ -4,7 +4,7 @@ metadata:
   name: rule-service-config
 data:
   SPRING_PROFILES_ACTIVE: "kubernetes"
-  JAVA_TOOL_OPTIONS: "-Xmx256m"
+  JAVA_TOOL_OPTIONS: "-Xmx128m -XX:MaxMetaspaceSize=128m"
   SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/rules_db"
   CLIENTS_CATALOG_SERVICE_BASE_URL: "http://catalog-service:8081"
   CLIENTS_PRICING_SERVICE_BASE_URL: "http://pricing-service:8083"

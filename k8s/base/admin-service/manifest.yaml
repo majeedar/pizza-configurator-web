@@ -4,7 +4,7 @@ metadata:
   name: admin-service-config
 data:
   SPRING_PROFILES_ACTIVE: "kubernetes"
-  JAVA_TOOL_OPTIONS: "-Xmx256m"
+  JAVA_TOOL_OPTIONS: "-Xmx128m -XX:MaxMetaspaceSize=128m"
   SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/admin_db"
   CLIENTS_PRICING_SERVICE_BASE_URL: "http://pricing-service:8083"
   CLIENTS_RULE_SERVICE_BASE_URL: "http://rule-service:8082"
