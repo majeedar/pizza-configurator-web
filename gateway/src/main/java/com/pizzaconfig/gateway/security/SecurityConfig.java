@@ -34,10 +34,11 @@ import java.util.List;
 public class SecurityConfig {
 
     @Bean
-    public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http, ReactiveJwtDecoder jwtDecoder) {
+    public SecurityWebFilterChain securityWebFilterChain(ServerHttpSecurity http, ReactiveJwtDecoder jwtDecoder,
+                                                           CorsConfigurationSource corsConfigurationSource) {
         return http
                 .csrf(ServerHttpSecurity.CsrfSpec::disable)
-                .cors(cors -> cors.configurationSource(corsConfigurationSource()))
+                .cors(cors -> cors.configurationSource(corsConfigurationSource))
                 .authorizeExchange(exchanges -> exchanges
                         .pathMatchers(HttpMethod.OPTIONS, "/**").permitAll()
                         .pathMatchers("/actuator/**").permitAll()
@@ -64,12 +65,14 @@ public class SecurityConfig {
         return NimbusReactiveJwtDecoder.withSecretKey(key).build();
     }
 
-    // Dev-only: allows the local Vite dev server (and a locally-built frontend
-    // container) to call this gateway from a different origin.
+    // Origins are environment-specific (see application.yml's cors.allowed-origins) —
+    // browsers send an Origin header on same-origin POSTs too, so whatever domain the
+    // frontend is actually served from must be in this list or this filter 403s it
+    // before the request reaches any route.
     @Bean
-    public CorsConfigurationSource corsConfigurationSource() {
+    public CorsConfigurationSource corsConfigurationSource(@Value("${cors.allowed-origins}") List<String> allowedOrigins) {
         CorsConfiguration configuration = new CorsConfiguration();
-        configuration.setAllowedOrigins(List.of("http://localhost:5173", "http://localhost:3000", "http://localhost:3001"));
+        configuration.setAllowedOrigins(allowedOrigins);
         configuration.setAllowedMethods(List.of("GET", "POST", "PUT", "DELETE", "OPTIONS"));
         configuration.setAllowedHeaders(List.of("*"));
         configuration.setAllowCredentials(true);
