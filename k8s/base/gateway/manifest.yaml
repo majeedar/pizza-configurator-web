@@ -41,7 +41,7 @@ spec:
     spec:
       containers:
         - name: gateway
-          image: ghcr.io/majeedar/gateway:feb5cdbf354573f92b3da1b324a75a390cde34f7
+          image: ghcr.io/majeedar/gateway:60a21ace9e248043bdef62096aba1f5c6583293d
           ports:
             - containerPort: 8080
           envFrom:
