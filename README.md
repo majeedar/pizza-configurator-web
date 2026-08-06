@@ -14,6 +14,7 @@ API gateway.
 - [Data & messaging](#data--messaging)
 - [Getting started](#getting-started)
 - [Project structure](#project-structure)
+- [MVP & feature timeline](#mvp--feature-timeline)
 - [Deployment](#deployment)
 - [Known limitations](#known-limitations)
 
@@ -180,13 +181,105 @@ docker-compose.yml    Local orchestration for all services + Postgres/Kafka/Redi
 data/CLAUDE.md        Original architecture spec this project was built from
 ```
 
+## MVP & feature timeline
+
+The MVP scope (data/CLAUDE.md) was: catalog + pricing + rule + order services,
+a deterministic rule engine, and free-text parsing via an AI layer with zero
+business-rule authority of its own. Each service's own Flyway migration
+history is the most reliable record of how it grew past that baseline:
+
+- **catalog-service**: `V1` core pizza/ingredient/extras schema → `V2` split
+  out per-pizza default ingredients as their own structure → `V3` added admin
+  photo upload (pizza images).
+- **order-service**: `V1` core orders schema → `V2` added a customer phone
+  number → `V3` added **pending reviews** (the manual-review workflow for
+  free-text comments the rule engine can't confidently resolve) → `V4`
+  replaced anonymous ordering with real **customer accounts** (email + bcrypt
+  password) → `V5` added real **staff/admin accounts**, replacing the
+  gateway's original hardcoded demo credentials with order-service-backed
+  login and an admin-managed account model.
+- **admin-service**: started as the canonical owner of prices/rules, then was
+  refactored into a thin **audited proxy** in front of pricing-service and
+  rule-service (each keeps owning its own data) — `admin_db` now stores only
+  the audit log of who changed what, when.
+- **pricing-service** / **rule-service**: single-migration schemas; grew in
+  behavior (rule-service's 7 validation rules, admin-editable thresholds)
+  without further schema changes.
+
+**Deployment** was the most recent addition, built out incrementally against
+a real shared server rather than a clean box — see below for what that
+actually involved and what broke along the way.
+
 ## Deployment
 
-Docker Compose is for local development. `k8s/base` holds Kustomize manifests
-(ConfigMaps, Secrets as placeholders, Deployments, Services, and a PVC for
+Docker Compose is for local development (see [Getting started](#getting-started)).
+
+For a real cluster, `k8s/base` holds Kustomize manifests (ConfigMaps,
+Deployments, Services, StatefulSets for Postgres/Kafka/Redis, and a PVC for
 catalog-service's pizza images) with environment-specific overlays under
 `k8s/overlays/{local,hetzner,production}`. GitHub Actions CI is path-filtered
-per service, so a change to one microservice doesn't rebuild the whole fleet.
+per service (plus one for `frontend/`), so a change to one microservice
+doesn't rebuild the whole fleet; each workflow builds, tests, pushes to GHCR,
+then does a rolling `kubectl set image` update.
+
+### Live deployment (hetzner overlay)
+
+Running at **https://pizza.204.168.156.164.sslip.io** — a single-node k3s
+cluster on a shared Hetzner box that also hosts unrelated projects, so several
+choices here are specifically about coexisting safely rather than what a
+dedicated box would do:
+
+- **Ingress**: host nginx keeps ports 80/443 (fronting the other projects
+  already on that box); Traefik (k3s's ingress controller) runs behind it on
+  fixed NodePorts, reached via one extra nginx server block + a Let's Encrypt
+  cert for the `sslip.io` subdomain — no DNS setup needed, `sslip.io` resolves
+  `<name>.<ip>.sslip.io` straight to the embedded IP.
+- **Ingress routing**: `/v1/**` and `/actuator/**` go to `gateway`; everything
+  else goes to `frontend`. The frontend image is built with
+  `VITE_API_BASE_URL=""` so it calls the API same-origin through that same
+  ingress domain (see `frontend/Dockerfile`).
+- **CORS**: `gateway`'s `CORS_ALLOWED_ORIGINS` must include whatever origin
+  the frontend is actually served from — browsers send an `Origin` header on
+  same-origin POSTs too, not just cross-origin ones, so this isn't optional
+  even when frontend and API share a domain. Set per-overlay (see
+  `k8s/overlays/hetzner/kustomization.yaml`); base only defaults to local-dev
+  ports.
+- **Sizing**: CPU limits are generous (CPU is compressible, doesn't need to
+  fit within real headroom) but memory requests are trimmed hard and JVM
+  heaps capped via `JAVA_TOOL_OPTIONS` — this box's real free memory is far
+  below what Kubernetes reports as "allocatable" once the other projects'
+  containers are accounted for. A 4GB swap file is a deliberate safety net
+  against transient pressure, not routine capacity.
+- **Credentials**: `Secret` objects are **not** part of the kustomize-managed
+  resources — they used to be checked-in placeholders, but that meant every
+  `kubectl apply -k` silently reverted real rotated credentials back to
+  `changeme`, which broke this live deployment twice before being fixed.
+  Create them once per cluster before the first apply:
+
+  ```bash
+  kubectl create secret generic postgres-credentials \
+    --from-literal=POSTGRES_PASSWORD=<...>
+  kubectl create secret generic gateway-jwt-secret \
+    --from-literal=JWT_SIGNING_SECRET=<...>
+  kubectl create secret generic ai-parser-service-openai-credentials \
+    --from-literal=OPENAI_API_KEY=<...>
+  # for each of: catalog-service, pricing-service, rule-service, order-service, admin-service
+  kubectl create secret generic <service>-db-credentials \
+    --from-literal=DB_USERNAME=postgres --from-literal=DB_PASSWORD=<...>
+  ```
+
+  `kubectl apply -k` is then safe to re-run indefinitely without touching them.
+- **CI's cluster access** (`KUBE_CONFIG_B64` in GitHub Actions) is a scoped
+  `ServiceAccount` + `Role`, not cluster-admin — limited to `get/list/patch`
+  on `Deployments` inside this app's own namespace only. A leaked token can
+  restart this app's pods; it can't touch the cluster, the node, or any other
+  project sharing the box. The Kubernetes API server has to be reachable from
+  GitHub's hosted runners, so this scoping is the actual security boundary,
+  not network restriction.
+- **Bootstrapping a brand-new environment**: create the namespace and the
+  Secrets above, `kubectl apply -k k8s/overlays/<env>` once by hand (CI's
+  `kubectl set image` only works on a Deployment that already exists), then
+  set `KUBE_CONFIG_B64` — from then on, pushes to `main` deploy automatically.
 
 ## Known limitations
 
@@ -199,5 +292,7 @@ per service, so a change to one microservice doesn't rebuild the whole fleet.
   need shared object storage instead.
 - **No automated tests.** Everything has been verified manually via curl and
   browser testing; there's no regression safety net yet for future changes.
-- **JWT signing secret** defaults to a development placeholder — rotate it
-  (`JWT_SIGNING_SECRET`) before any real deployment.
+- **JWT signing secret and all other credentials** default to development
+  placeholders in `docker-compose.yml` and `k8s/base`'s ConfigMaps — see
+  [Deployment](#deployment) for how real clusters supply real values without
+  ever committing them.
