@@ -18,7 +18,7 @@ spec:
     spec:
       containers:
         - name: frontend
-          image: ghcr.io/majeedar/frontend:latest
+          image: ghcr.io/majeedar/frontend:745bef3d4a464ee262a5df1a6086c3f9abd805c0
           ports:
             - containerPort: 80
           readinessProbe:
