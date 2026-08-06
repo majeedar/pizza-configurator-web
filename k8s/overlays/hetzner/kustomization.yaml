@@ -69,3 +69,12 @@ patches:
       - op: add
         path: /spec/ingressClassName
         value: traefik
+  # Frontend and gateway are served off the same domain here, but browsers still send
+  # an Origin header on same-origin POSTs — base's CORS default only covers local dev.
+  - target:
+      kind: ConfigMap
+      name: gateway-config
+    patch: |-
+      - op: add
+        path: /data/CORS_ALLOWED_ORIGINS
+        value: https://pizza.204.168.156.164.sslip.io
