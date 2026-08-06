@@ -1,5 +1,17 @@
 apiVersion: kustomize.config.k8s.io/v1beta1
 kind: Kustomization
+# Credential Secrets are deliberately NOT part of these resources — they used to be
+# checked-in placeholders, but that meant every `kubectl apply -k` silently reverted
+# real rotated credentials back to "changeme" (learned this the hard way: it broke a
+# live deployment twice). Create these manually once per cluster before applying, e.g.:
+#
+#   kubectl create secret generic postgres-credentials --from-literal=POSTGRES_PASSWORD=...
+#   kubectl create secret generic gateway-jwt-secret --from-literal=JWT_SIGNING_SECRET=...
+#   kubectl create secret generic ai-parser-service-openai-credentials --from-literal=OPENAI_API_KEY=...
+#   kubectl create secret generic <service>-db-credentials --from-literal=DB_USERNAME=postgres --from-literal=DB_PASSWORD=...
+#     for: catalog-service, pricing-service, rule-service, order-service, admin-service
+#
+# `kubectl apply -k` is then safe to re-run any number of times without touching them.
 resources:
   - ingress.yaml
   - postgres

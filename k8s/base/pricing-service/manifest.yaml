@@ -7,17 +7,6 @@ data:
   JAVA_TOOL_OPTIONS: "-Xmx128m -XX:MaxMetaspaceSize=128m"
   SPRING_DATASOURCE_URL: "jdbc:postgresql://postgres:5432/price_db"
 ---
-# Placeholder only — replace with real credentials via `kubectl create secret` or a
-# secrets manager before applying to any real cluster; never commit real values here.
-apiVersion: v1
-kind: Secret
-metadata:
-  name: pricing-service-db-credentials
-type: Opaque
-stringData:
-  DB_USERNAME: postgres
-  DB_PASSWORD: changeme
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:

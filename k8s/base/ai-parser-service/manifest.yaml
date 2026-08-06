@@ -8,16 +8,6 @@ data:
   OPENAI_BASE_URL: "https://api.deepseek.com"
   OPENAI_MODEL: "deepseek-chat"
 ---
-# Placeholder only — replace with a real OpenAI API key via `kubectl create secret` or a
-# secrets manager before applying to any real cluster; never commit a real key here.
-apiVersion: v1
-kind: Secret
-metadata:
-  name: ai-parser-service-openai-credentials
-type: Opaque
-stringData:
-  OPENAI_API_KEY: changeme
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:

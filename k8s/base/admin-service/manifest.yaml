@@ -10,17 +10,6 @@ data:
   CLIENTS_RULE_SERVICE_BASE_URL: "http://rule-service:8082"
   CLIENTS_ORDER_SERVICE_BASE_URL: "http://order-service:8085"
 ---
-# Placeholder only — replace with real credentials via `kubectl create secret` or a
-# secrets manager before applying to any real cluster; never commit real values here.
-apiVersion: v1
-kind: Secret
-metadata:
-  name: admin-service-db-credentials
-type: Opaque
-stringData:
-  DB_USERNAME: postgres
-  DB_PASSWORD: changeme
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:

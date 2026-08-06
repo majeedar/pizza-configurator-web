@@ -10,17 +10,6 @@ data:
   CLIENTS_PRICING_SERVICE_BASE_URL: "http://pricing-service:8083"
   KAFKA_BOOTSTRAP_SERVERS: "kafka:9092"
 ---
-# Placeholder only — replace with real credentials via `kubectl create secret` or a
-# secrets manager before applying to any real cluster; never commit real values here.
-apiVersion: v1
-kind: Secret
-metadata:
-  name: rule-service-db-credentials
-type: Opaque
-stringData:
-  DB_USERNAME: postgres
-  DB_PASSWORD: changeme
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:

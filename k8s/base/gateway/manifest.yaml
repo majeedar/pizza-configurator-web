@@ -13,16 +13,6 @@ data:
   CLIENTS_KITCHEN_SERVICE_BASE_URL: "http://kitchen-service:8086"
   CLIENTS_ADMIN_SERVICE_BASE_URL: "http://admin-service:8087"
 ---
-# Placeholder only — there's no real IdP in this scaffold; replace with a real secret
-# via `kubectl create secret` or a secrets manager before applying to any real cluster.
-apiVersion: v1
-kind: Secret
-metadata:
-  name: gateway-jwt-secret
-type: Opaque
-stringData:
-  JWT_SIGNING_SECRET: this-is-a-development-only-placeholder-signing-secret-please-rotate
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:

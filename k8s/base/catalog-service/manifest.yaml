@@ -22,17 +22,6 @@ spec:
     requests:
       storage: 1Gi
 ---
-# Placeholder only — replace with real credentials via `kubectl create secret` or a
-# secrets manager before applying to any real cluster; never commit real values here.
-apiVersion: v1
-kind: Secret
-metadata:
-  name: catalog-service-db-credentials
-type: Opaque
-stringData:
-  DB_USERNAME: postgres
-  DB_PASSWORD: changeme
----
 apiVersion: apps/v1
 kind: Deployment
 metadata:

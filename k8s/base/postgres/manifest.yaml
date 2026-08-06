@@ -13,16 +13,6 @@ data:
     CREATE DATABASE order_db;
     CREATE DATABASE admin_db;
 ---
-# Placeholder only — replace with a real password via `kubectl create secret` before
-# applying to any real cluster; never commit a real value here.
-apiVersion: v1
-kind: Secret
-metadata:
-  name: postgres-credentials
-type: Opaque
-stringData:
-  POSTGRES_PASSWORD: changeme
----
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
