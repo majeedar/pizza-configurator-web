@@ -1,5 +1,7 @@
-# The gateway Service is the only externally exposed entry point (CLAUDE.md §12) — every
-# other service is ClusterIP-only and reachable exclusively from inside the cluster.
+# The gateway Service is the only externally exposed *API* entry point (CLAUDE.md §12) —
+# every other backend service is ClusterIP-only and reachable exclusively from inside the
+# cluster. The frontend static SPA is also exposed here, since a browser needs somewhere
+# to load the app from before it can make any authenticated API calls.
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -10,10 +12,24 @@ spec:
   rules:
     - http:
         paths:
-          - path: /
+          - path: /v1
             pathType: Prefix
             backend:
               service:
                 name: gateway
                 port:
                   number: 8080
+          - path: /actuator
+            pathType: Prefix
+            backend:
+              service:
+                name: gateway
+                port:
+                  number: 8080
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: frontend
+                port:
+                  number: 80

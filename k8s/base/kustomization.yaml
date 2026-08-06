@@ -5,6 +5,7 @@ resources:
   - postgres
   - kafka
   - redis
+  - frontend
   - catalog-service
   - pricing-service
   - rule-service

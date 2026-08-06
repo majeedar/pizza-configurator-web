@@ -3,6 +3,11 @@ WORKDIR /app
 COPY package*.json ./
 RUN npm install
 COPY . .
+# Baked in at build time (Vite inlines import.meta.env.* into the bundle).
+# Defaults to today's local-dev value; the k8s build overrides it to "" so
+# fetches go same-origin through the single ingress domain instead.
+ARG VITE_API_BASE_URL=http://localhost:8080
+ENV VITE_API_BASE_URL=$VITE_API_BASE_URL
 RUN npm run build
 
 FROM nginx:alpine

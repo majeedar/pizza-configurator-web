@@ -1,0 +1,55 @@
+name: frontend
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'frontend/**'
+  pull_request:
+    paths:
+      - 'frontend/**'
+
+permissions:
+  contents: read
+  packages: write
+
+env:
+  REGISTRY: ghcr.io/${{ github.repository_owner }}
+
+jobs:
+  build-test-deploy:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install & lint
+        working-directory: frontend
+        run: |
+          npm ci
+          npm run lint
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ghcr.io
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      # VITE_API_BASE_URL="" makes the built SPA call the API same-origin, since
+      # the ingress serves both frontend and gateway (at /v1) off one domain.
+      - name: Build & push image
+        run: |
+          docker build -f frontend/Dockerfile --build-arg VITE_API_BASE_URL= -t "$REGISTRY"/frontend:${{ github.sha }} frontend
+          docker push "$REGISTRY"/frontend:${{ github.sha }}
+
+      - name: Configure kubeconfig
+        run: |
+          mkdir -p ~/.kube
+          echo "${{ secrets.KUBE_CONFIG_B64 }}" | base64 -d > ~/.kube/config
+
+      - name: Deploy (rolling update)
+        run: kubectl set image deployment/frontend frontend="$REGISTRY"/frontend:${{ github.sha }}
